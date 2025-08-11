@@ -8,3 +8,4 @@ Redis
 Django-celery-beat
 Pillow
 Django_dbml
+python-dotenv
