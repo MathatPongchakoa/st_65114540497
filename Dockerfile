@@ -1,12 +1,12 @@
 FROM python:3.12
-
-
 WORKDIR /app
 
 COPY . .
 
 RUN pip install -r requirements.txt
 
-WORKDIR /app
+# คัดลอก entrypoint และลบ CRLF กันพลาด
+COPY entrypoint.sh /entrypoint.sh
+RUN sed -i 's/\r$//' /entrypoint.sh && chmod +x /entrypoint.sh
 
-CMD ["sh", "-c", "python manage.py migrate && python manage.py runserver 0.0.0.0:8000"]
+CMD ["/entrypoint.sh"]
