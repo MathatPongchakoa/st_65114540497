@@ -1,20 +1,44 @@
 services:
+  db:
+    image: postgres:15-alpine
+    restart: always
+    env_file:
+      - .env
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB -h 127.0.0.1"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
   web:
     build: .
-    env_file: [.env]
-    depends_on: [db]
-    ports: ["8000:8000"]
-
-  db:
-    image: postgres:16
-    env_file: [.env]
-    environment:
-      - POSTGRES_DB=${POSTGRES_DB}
-      - POSTGRES_USER=${POSTGRES_USER}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-    ports: ["5433:5432"]
+    restart: always
+    env_file:
+      - .env
+    depends_on:
+      db:
+        condition: service_healthy
+    # แนะนำให้ใช้ ENTRYPOINT [/entrypoint.sh] ใน Dockerfile เพื่อ migrate ก่อนเสมอ
+    command: gunicorn seniorproject.wsgi:application --bind 0.0.0.0:8000
     volumes:
-      - pg_data:/var/lib/postgresql/data
+      - .:/app
+      - ./static:/app/static       # STATIC_ROOT
+      - ./media:/app/media                    # MEDIA_ROOT
+
+  nginx:
+    image: nginx:1.27-alpine
+    restart: always
+    depends_on:
+      - web
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./static:/app/static:ro     # ให้ nginx เสิร์ฟ static จากที่เดียวกับ web
+      - ./media:/app/media:ro                 # ให้ nginx เสิร์ฟ media จากที่เดียวกับ web
+
 
 volumes:
-  pg_data:
+  pgdata:

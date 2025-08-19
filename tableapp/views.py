@@ -1487,5 +1487,16 @@ def yearly_sales_report_view(request):
 
 
 
+from django.http import JsonResponse
+import socket
 
+def whereami(request):
+    meta = request.META
+    data = {
+        "host_header": request.get_host(),                    # Host ที่ client ขอมา (ควรเห็น 202.28.49.122)
+        "client_ip": meta.get("HTTP_X_FORWARDED_FOR") or meta.get("REMOTE_ADDR"),
+        "server_hostname": socket.gethostname(),
+        "note": "ถ้า host_header เป็น 202.28.49.122 แปลว่าถูกเข้าผ่าน IP นี้",
+    }
+    return JsonResponse(data)
 
