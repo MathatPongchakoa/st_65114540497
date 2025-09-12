@@ -2,13 +2,16 @@ services:
   web:
     build: .
     ports:
-      - "8000:8000"  # นี่คือการกำหนดให้ container ภายในใช้พอร์ต 8000 และ expose ออกมาที่เครื่อง host บนพอร์ต 8000
+      - "8000:8000"
     volumes:
       - .:/app
-    depends_on:
-      - db
     restart: always
-
+    depends_on:
+      db: # <-- แก้ไขส่วนนี้
+        condition: service_healthy
+      redis: # <-- เพิ่ม redis เข้ามา
+        condition: service_started
+  
   db:
     image: mysql:8.0
     restart: always
@@ -16,9 +19,23 @@ services:
       MYSQL_ROOT_PASSWORD: 1234
       MYSQL_DATABASE: sn_project
     ports:
-      - "3307:3306"  # กำหนดให้ MySQL ใช้พอร์ต 3306 บน container และ expose ออกมาที่เครื่อง host บนพอร์ต 3307
+      - "3307:3306"
     volumes:
       - mysql_data:/var/lib/mysql
+    healthcheck: # <-- เพิ่มส่วนนี้ทั้งหมด
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p1234"]
+      interval: 5s
+      timeout: 10s
+      retries: 5
+
+  redis: # <-- เพิ่ม service นี้ทั้งหมด
+    image: "redis:alpine"
+    restart: always
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 10s
+      retries: 5
 
 volumes:
   mysql_data:
